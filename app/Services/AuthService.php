@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class AuthService
 {
@@ -16,7 +17,7 @@ class AuthService
         ]);
     }
 
-    public function login(array $credentials): ?User
+    public function login(array $credentials): ?string
     {
         $user = User::where('email', $credentials['email'])->first();
 
@@ -24,6 +25,21 @@ class AuthService
             return null;
         }
 
-        return $user;
+        Auth::guard('web')->login($user);
+        $user->tokens()->delete();
+
+        return $user->createToken('auth_token')->plainTextToken;
+    }
+
+    public function logout(): void
+    {
+        $user = Auth::user();
+
+        if ($user) {
+            $user->tokens()->delete();
+            Auth::guard('web')->logout();
+            session()->invalidate();
+            session()->regenerateToken();
+        }
     }
 }

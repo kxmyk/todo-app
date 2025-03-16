@@ -6,6 +6,8 @@ use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\LoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Contracts\View\View;
 
 class AuthController extends Controller
 {
@@ -16,31 +18,44 @@ class AuthController extends Controller
         $this->authService = $authService;
     }
 
-    public function register(RegisterRequest $request): JsonResponse
+    public function showLogin(): View
+    {
+        return view('auth.login');
+    }
+
+    public function showRegister(): View
+    {
+        return view('auth.register');
+    }
+
+    public function register(RegisterRequest $request): RedirectResponse
     {
         $this->authService->register($request->validated());
 
-        return response()->json(['message' => 'User registered successfully'], 201);
+        return redirect()->route('login')->with('success', 'Konto zostało utworzone. Możesz się teraz zalogować.');
     }
 
-    public function login(LoginRequest $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse|RedirectResponse
     {
-        $user = $this->authService->login($request->validated());
+        $token = $this->authService->login($request->validated());
 
-        if (!$user) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        if (!$token) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Nieprawidłowe dane logowania.'], 401);
+            }
+            return back()->withErrors(['email' => 'Nieprawidłowe dane logowania.']);
         }
 
-        return response()->json([
-            'access_token' => $user->createToken('auth_token')->plainTextToken,
-            'token_type' => 'Bearer',
-        ]);
+        if ($request->expectsJson()) {
+            return response()->json(['token' => $token, 'message' => 'Zalogowano pomyślnie']);
+        }
+
+        return redirect()->route('tasks.index')->with('auth_token', $token);
     }
 
-    public function logout(): JsonResponse
+    public function logout(): RedirectResponse
     {
-        auth()->user()->tokens()->delete();
-
-        return response()->json(['message' => 'Logged out successfully']);
+        $this->authService->logout();
+        return redirect()->route('login');
     }
 }
