@@ -24,25 +24,13 @@ cp .env.example .env
 
 Edytuj `.env` i uzupełnij wymagane dane (wygwiazdkowane)
 
-Generowanie klucza aplikacji:
-
-```sh
-php artisan key:generate
-```
-
 ### 3. Uruchomienie aplikacji
 
 ```sh
 docker-compose up -d --build
 ```
 
-### 4. Migracja bazy danych i seedowanie
-
-```sh
-docker-compose exec app php artisan migrate --seed
-```
-
-### 5. Dostęp do aplikacji
+### 4. Dostęp do aplikacji
 
 - `http://localhost`
 
